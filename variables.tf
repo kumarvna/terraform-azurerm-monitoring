@@ -79,7 +79,11 @@ variable "metric_alerts" {
       operator               = string
       threshold              = number
       skip_metric_validation = optional(bool)
-      dimension              = optional(map(string))
+      dimension = optional(list(object({
+        name     = string
+        operator = string
+        values   = list(string)
+      })))
     }))
     dynamic_criteria = optional(object({
       metric_namespace         = string
@@ -91,11 +95,11 @@ variable "metric_alerts" {
       evaluation_failure_count = optional(number)
       ignore_data_before       = optional(string)
       skip_metric_validation   = optional(bool)
-      dimension = optional(object({
+      dimension = optional(list(object({
         name     = string
         operator = string
         values   = list(string)
-      }))
+      })))
     }))
   }))
   default = null

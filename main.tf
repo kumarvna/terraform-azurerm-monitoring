@@ -73,7 +73,7 @@ resource "azurerm_monitor_activity_log_alert" "activity_log_alert" {
     recommendation_impact   = each.value.criteria.category == "Recommendation" ? lookup(each.value.criteria, "recommendation_impact") : null
 
     dynamic "service_health" {
-      for_each = var.service_health == null ? [] : [1]
+      for_each = var.service_health != null ? [1] : []
       content {
         events    = lookup(var.service_health, "events", "Incident")
         locations = lookup(var.service_health, "locations", "Global")
@@ -103,27 +103,29 @@ resource "azurerm_monitor_metric_alert" "metric_alert" {
   window_size              = each.value.window_size
   tags                     = merge({ "Name" = format("%s", var.action_group.name) }, var.tags, )
 
-  criteria {
-    metric_namespace       = lookup(each.value.criteria, "metric_namespace")
-    metric_name            = lookup(each.value.criteria, "metric_name")
-    aggregation            = lookup(each.value.criteria, "aggregation")
-    operator               = lookup(each.value.criteria, "operator")
-    threshold              = lookup(each.value.criteria, "threshold")
-    skip_metric_validation = lookup(each.value.criteria, "skip_metric_validation", false)
+  dynamic "criteria" {
+    for_each = var.metric_alerts.criteria != null ? [lookup(var.metric_alerts, "criteria")] : []
+    content {
+      metric_namespace       = lookup(each.value.criteria, "metric_namespace")
+      metric_name            = lookup(each.value.criteria, "metric_name")
+      aggregation            = lookup(each.value.criteria, "aggregation")
+      operator               = lookup(each.value.criteria, "operator")
+      threshold              = lookup(each.value.criteria, "threshold")
+      skip_metric_validation = lookup(each.value.criteria, "skip_metric_validation", false)
 
-    /*     dynamic "dimension" {
-      for_each = criteria.value.dimension != null ? [criteria.value.dimension] : []
-      content {
-        name     = dimension.value.name     #lookup(var.dimension, "name")
-        operator = dimension.value.operator #lookup(var.dimension, "operator")
-        values   = dimension.value.values   #lookup(var.dimension, "values")
+      dynamic "dimension" {
+        for_each = lookup(criteria.value, "dimension", [])
+        content {
+          name     = lookup(dimension.value, "name", null)
+          operator = lookup(dimension.value, "operator", null)
+          values   = lookup(dimension.value, "values", null)
+        }
       }
-    } */
+    }
   }
 
-  /* 
   dynamic "dynamic_criteria" {
-    for_each = var.metric_alerts.dynamic_criteria != null ? [var.metric_alerts.dynamic_criteria] : []
+    for_each = lookup(var.metric_alerts, "dynamic_criteria") != null ? [lookup(var.metric_alerts, "dynamic_criteria")] : []
     content {
       metric_namespace         = lookup(each.value.dynamic_criteria, "metric_namespace")
       metric_name              = lookup(each.value.dynamic_criteria, "metric_name")
@@ -136,16 +138,16 @@ resource "azurerm_monitor_metric_alert" "metric_alert" {
       skip_metric_validation   = lookup(each.value.dynamic_criteria, "skip_metric_validation")
 
       dynamic "dimension" {
-        for_each = dynamic_criteria.value.dimension != null ? [dynamic_criteria.value.dimension] : []
+        for_each = lookup(dynamic_criteria.value, "dimension", [])
         content {
-          name     = dimension.value.name     #lookup(var.dimension, "name")
-          operator = dimension.value.operator #lookup(var.dimension, "operator")
-          values   = dimension.value.values   #lookup(var.dimension, "values")
+          name     = lookup(dimension.value, "name", null)
+          operator = lookup(dimension.value, "operator", null)
+          values   = lookup(dimension.value, "values", null)
         }
       }
     }
   }
- */
+
   action {
     action_group_id = azurerm_monitor_action_group.action_group.id
     webhook_properties = {
